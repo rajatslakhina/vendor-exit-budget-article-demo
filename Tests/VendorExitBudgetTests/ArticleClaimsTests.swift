@@ -91,6 +91,53 @@ final class ArticleClaimsTests: XCTestCase {
         XCTAssertEqual(plan.minimumVendorSet.count, 3)
     }
 
+    /// The two next-most-binding capabilities are worth 0.45 points each, and they tie -
+    /// which is why the tie-break by traffic share puts logprobs above vision.
+    func testRunnersUpAreWorthLessThanHalfAPointEach() throws {
+        let logprobs = try XCTUnwrap(plan.bindingCapabilities.first { $0.capability == .logprobs })
+        let vision = try XCTUnwrap(plan.bindingCapabilities.first { $0.capability == .vision })
+        XCTAssertEqual(logprobs.coverageGain, 0.004454, accuracy: 1e-5)   // +0.45 pts
+        XCTAssertEqual(vision.coverageGain, 0.004454, accuracy: 1e-5)     // +0.45 pts
+        XCTAssertEqual(logprobs.coverageIfDropped, 0.622740, accuracy: 1e-5)
+        XCTAssertEqual(vision.coverageIfDropped, 0.622740, accuracy: 1e-5)
+        XCTAssertEqual(logprobs.trafficShare, 0.058161, accuracy: 1e-5)
+        XCTAssertEqual(vision.trafficShare, 0.024889, accuracy: 1e-5)
+        // Equal gain, so traffic share decides the order.
+        XCTAssertLessThan(
+            plan.bindingCapabilities.firstIndex(of: logprobs)!,
+            plan.bindingCapabilities.firstIndex(of: vision)!
+        )
+    }
+
+    /// Ported-site counts as printed in the destinations chart.
+    func testPortedSiteCountsAreExactlyAsCharted() {
+        XCTAssertEqual(plan.rankedOptions.map(\.portedSiteIDs.count), [4, 7, 6, 3])
+        XCTAssertEqual(plan.rankedOptions.map(\.rewriteDays), [34, 24, 30, 50])
+    }
+
+    /// The headline flip is caused by concentration, not by a correlation between
+    /// portability and popularity: one call site is over a third of all traffic and has
+    /// exactly one possible destination.
+    func testOneCallSiteCarriesOverAThirdOfTrafficAndHasASingleDestination() throws {
+        let triage = try XCTUnwrap(SampleFleet.callSites.first { $0.id == "inbox.triage" })
+        let share = Double(triage.monthlyCalls) / Double(SampleFleet.monthlyCalls)
+        XCTAssertEqual(share, 0.366780, accuracy: 1e-5)   // 36.68%
+        let takers = SampleFleet.planner.alternatives.filter { $0.satisfies(triage) }
+        XCTAssertEqual(takers.map(\.id), ["device-fm"])
+    }
+
+    /// Rarity is not risk either: `toolCalling` is required by exactly two call sites,
+    /// same as `onDevice`, and is worth nothing because every provider ships it.
+    func testACapabilityCanBeRareAndStillFree() throws {
+        let tools = try XCTUnwrap(plan.bindingCapabilities.first { $0.capability == .toolCalling })
+        let onDevice = try XCTUnwrap(plan.bindingCapabilities.first { $0.capability == .onDevice })
+        XCTAssertEqual(tools.sitesRequiring, 2)
+        XCTAssertEqual(onDevice.sitesRequiring, 2)
+        XCTAssertEqual(tools.coverageGain, 0, accuracy: 1e-9)
+        XCTAssertGreaterThan(onDevice.coverageGain, 0.35)
+        XCTAssertTrue(SampleFleet.planner.alternatives.allSatisfy { $0.capabilities.contains(.toolCalling) })
+    }
+
     func testRankingOfEveryDestinationIsExactlyAsPublished() {
         XCTAssertEqual(plan.rankedOptions.map(\.id), ["device-fm", "self-hosted", "frontier-b", "managed-pcc"])
         let coverages = plan.rankedOptions.map { ($0.trafficCoverage * 10_000).rounded() / 100 }
