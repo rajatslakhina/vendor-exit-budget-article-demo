@@ -66,10 +66,10 @@ This is a price list, not a to-do list. On-device inference is a data-residency 
 ```bash
 git clone https://github.com/rajatslakhina/vendor-exit-budget-article-demo.git
 cd vendor-exit-budget-article-demo
-open Demo.xcodeproj      # pick any iOS Simulator, then Build & Run
+open Demo/Demo.xcodeproj   # pick any iOS Simulator, then Build & Run
 ```
 
-One repo, one clone, no second package to fetch — `Demo.xcodeproj` consumes the library through a local Swift package reference to `..`.
+One repo, one clone, no second package to fetch — `Demo/Demo.xcodeproj` consumes the library through a local Swift package reference to `..`, which resolves to this repository root where `Package.swift` lives.
 
 The demo screen shows the two headline numbers side by side and a single switch: **Require on-device inference**. Turning it off recomputes the whole plan live — coverage jumps 61.8% → 97.5% and the winning destination changes from the on-device model to self-hosted open weights.
 
@@ -85,9 +85,9 @@ swift build && swift test
 
 Stated plainly rather than implied:
 
-- ✅ `swift build` and `swift test` both pass — **25 tests, 0 failures**, on Swift 6.0.3 (Linux aarch64). Edge cases covered: empty fleet, zero-traffic fleet, no alternatives at all, unservable call sites, context-only stranding, negative-input clamping, determinism across repeated runs.
+- ✅ `swift build` and `swift test` both pass — **29 tests, 0 failures**, on Swift 6.0.3 (Linux aarch64). Edge cases covered: empty fleet, zero-traffic fleet, no alternatives at all, unservable call sites, context-only stranding, negative-input clamping, determinism across repeated runs.
 - ✅ `ArticleClaimsTests.swift` asserts every number quoted in the article and in this README against the real computation, so prose and code cannot drift apart silently.
-- ✅ `Demo.xcodeproj/project.pbxproj` was hand-authored and verified programmatically: brace and paren balance zero, twenty objects defined, zero dangling object references, shared `Demo.xcscheme` committed, no `.executableTarget` anywhere in `Package.swift`.
+- ⚠️ `Demo/Demo.xcodeproj/project.pbxproj` was hand-authored. What was checked is only structural: brace and paren balance zero, nineteen objects defined, zero dangling object references, a shared `Demo.xcscheme` committed, and no `.executableTarget` anywhere in `Package.swift`. **That is not evidence Xcode can resolve the package or produce a build** — nobody has opened this project. The layout deliberately nests the project one level down so the `XCLocalSwiftPackageReference` at `..` points at the package root rather than at an ancestor of itself, which is the arrangement Xcode accepts.
 - ❌ **The app was NOT run on the Simulator and there are no screenshots.** This demo was produced by an unattended scheduled run, and the desktop-automation permission needed to drive Xcode returned *"can't be approved during a scheduled run"* — there was no user present to approve it. `ExitBudgetView.swift` has therefore **never been compiled by any Swift compiler**: it is behind `#if canImport(SwiftUI)`, which is false on Linux. It was reviewed by hand against iOS 17 API availability instead (one real type error was caught that way — a ternary mixing `Color` and `HierarchicalShapeStyle` in `foregroundStyle`). Treat the SwiftUI layer as unverified.
 
 Everything outside `ExitBudgetView.swift` is compiled and tested.
