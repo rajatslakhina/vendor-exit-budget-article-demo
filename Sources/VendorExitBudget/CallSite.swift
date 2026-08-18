@@ -22,8 +22,9 @@ public struct CallSite: Sendable, Hashable, Identifiable, Codable {
     /// promising fixes that do not exist.
     public let minimumContextTokens: Int
 
-    /// Traffic weight. Coverage that ignores volume flatters you: the call sites that are
-    /// easiest to port are usually the ones nobody uses.
+    /// Traffic weight. Coverage that ignores volume flatters you, and not because easy-to-port
+    /// call sites are unpopular - because traffic concentrates. A single site carrying a third
+    /// of the load with one possible destination decides the migration on its own.
     public let monthlyCalls: Int
 
     /// Engineer-days to make this call site work on a provider that does not satisfy it -
