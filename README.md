@@ -52,7 +52,7 @@ This is a price list, not a to-do list. On-device inference is a data-residency 
 
 ## Design decisions worth arguing with
 
-- **Traffic weighting, not call-site counting.** They disagree here: by count the best destination is `self-hosted` (7 of 10 sites), by traffic it is `device-fm` (4 of 10). Sites that are easy to port are usually the ones nobody uses.
+- **Traffic weighting, not call-site counting.** They disagree here: by count the best destination is `self-hosted` (7 of 10 sites), by traffic it is `device-fm` (4 of 10). The mechanism is concentration, not popularity: `inbox.triage` alone is 36.7% of all traffic and exactly one alternative can serve it.
 - **Context window is a scalar, not a capability.** A shortfall of 96,000 tokens cannot be argued away by relaxing a requirement, so context-only stranding is reported separately in `contextBoundSiteIDs` rather than folded into the binding list, where it would imply a fix that does not exist.
 - **Call sites nobody can serve are excluded from the denominator.** They are a correctness problem, not a portability one, and leaving them in would punish every vendor for a requirement none could meet.
 - **The counterfactual re-solves the winner.** Holding the current best vendor fixed while dropping a requirement systematically under-reports the capability that matters most. There is a test for exactly this (`testBindingCapabilityRecomputesTheWinningVendorRatherThanHoldingItFixed`).
@@ -96,7 +96,7 @@ Everything outside `ExitBudgetView.swift` is compiled and tested.
 
 ## Article
 
-Written up in full here: **(added after publish)**
+Written up in full here: **[Every Call Site Was Portable. The App Was Not.](https://medium.com/@er.rajatlakhina/every-call-site-was-portable-the-app-was-not-8c34f6f31e7f)**
 
 ## Licence
 
